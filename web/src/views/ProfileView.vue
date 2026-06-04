@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import profileAvatarUrl from '../assets/images/profile-avatar.png'
 import profileHeaderBgUrl from '../assets/images/profile-header-bg.png'
-import profileCheckinUrl from '../assets/images/profile-checkin.jpg'
+import profileCheckinUrl from '../assets/images/profile-checkin.png'
 
 const stats = [
   { value: '17', unit: '天', label: '已打卡' },
@@ -101,7 +101,7 @@ const favorites = [
   position: relative;
   max-width: 30rem;
   margin: 0 auto;
-  padding: clamp(4.6rem, 14vw, 5.8rem) 1.7rem 2.35rem;
+  padding: clamp(3.7rem, 12vw, 4.9rem) 1.7rem 3.25rem;
   background: var(--profile-header-bg) center top / cover no-repeat;
 }
 
@@ -113,7 +113,7 @@ const favorites = [
   grid-template-columns: 4.95rem 1fr auto;
   gap: 1rem;
   align-items: center;
-  transform: translateY(-0.35rem);
+  transform: translateY(-0.55rem);
 }
 
 .profile-card__avatar {
@@ -168,9 +168,9 @@ const favorites = [
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 2.05rem 0 0;
+  margin: 1.7rem 0 0;
   color: #fffbe3;
-  transform: translateY(-0.25rem);
+  transform: translateY(-0.45rem);
   text-shadow: 0 0.08rem 0.25rem rgb(66 54 41 / 0.18);
 }
 
@@ -291,7 +291,7 @@ const favorites = [
   .profile-card {
     grid-template-columns: 4.6rem minmax(0, 1fr) 6.8rem;
     gap: 0.72rem;
-    transform: translateY(-0.2rem);
+    transform: translateY(-0.55rem);
   }
 
   .profile-card__avatar {
@@ -318,8 +318,8 @@ const favorites = [
   }
 
   .profile-stats {
-    margin-top: 1.85rem;
-    transform: none;
+    margin-top: 1.45rem;
+    transform: translateY(-0.25rem);
   }
 
   .profile-stats__item {
