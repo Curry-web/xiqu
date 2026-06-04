@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import profileAvatarUrl from '../assets/images/profile-avatar.png'
+import profileHeaderBgUrl from '../assets/images/profile-header-bg.png'
+import profileCheckinUrl from '../assets/images/profile-checkin.jpg'
 
 const stats = [
   { value: '17', unit: '天', label: '已打卡' },
@@ -22,16 +24,16 @@ const favorites = [
 
 <template>
   <main class="profile-page" aria-label="我的页面">
-    <section class="profile-hero">
-      <div class="profile-hero__pine" aria-hidden="true" />
-
+    <section class="profile-hero" :style="{ '--profile-header-bg': `url(${profileHeaderBgUrl})` }">
       <div class="profile-card">
         <img class="profile-card__avatar" :src="profileAvatarUrl" alt="京剧头像" />
         <div class="profile-card__name-wrap">
           <h1 class="profile-card__name">曲 曲</h1>
           <p class="profile-card__tag">初入梨园</p>
         </div>
-        <button class="profile-card__checkin" type="button">今日打卡</button>
+        <button class="profile-card__checkin" type="button" aria-label="今日打卡">
+          <img :src="profileCheckinUrl" alt="" aria-hidden="true" />
+        </button>
       </div>
 
       <dl class="profile-stats" aria-label="学习统计">
@@ -78,7 +80,7 @@ const favorites = [
   overflow: hidden;
   color: #173f3d;
   background:
-    linear-gradient(180deg, rgb(194 58 67 / 0.86) 0%, rgb(196 73 82 / 0.68) 20%, rgb(70 139 132 / 0.64) 37%, transparent 43%),
+    linear-gradient(180deg, transparent 0%, transparent 43%, #f3ecd4 43%),
     var(--xiqu-app-bg-image) center top / cover no-repeat,
     #f3ecd4;
   font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
@@ -99,24 +101,10 @@ const favorites = [
   position: relative;
   max-width: 30rem;
   margin: 0 auto;
-  padding: clamp(6.6rem, 22vw, 8rem) 1.7rem 1.4rem;
+  padding: clamp(4.6rem, 14vw, 5.8rem) 1.7rem 2.35rem;
+  background: var(--profile-header-bg) center top / cover no-repeat;
 }
 
-.profile-hero__pine {
-  position: absolute;
-  top: -1.5rem;
-  right: -5.5rem;
-  width: 21rem;
-  height: 13rem;
-  opacity: 0.42;
-  background:
-    radial-gradient(ellipse at 18% 42%, transparent 0 42%, #f6a26f 43% 47%, transparent 48%),
-    radial-gradient(ellipse at 38% 22%, transparent 0 42%, #f6a26f 43% 47%, transparent 48%),
-    radial-gradient(ellipse at 58% 38%, transparent 0 42%, #f6a26f 43% 47%, transparent 48%),
-    linear-gradient(145deg, transparent 0 42%, #f6a26f 43% 46%, transparent 47%),
-    linear-gradient(165deg, transparent 0 47%, #f6a26f 48% 51%, transparent 52%);
-  transform: rotate(-9deg);
-}
 
 .profile-card {
   position: relative;
@@ -125,6 +113,7 @@ const favorites = [
   grid-template-columns: 4.95rem 1fr auto;
   gap: 1rem;
   align-items: center;
+  transform: translateY(-0.35rem);
 }
 
 .profile-card__avatar {
@@ -158,27 +147,30 @@ const favorites = [
 }
 
 .profile-card__checkin {
-  min-width: 6.5rem;
-  min-height: 2.95rem;
-  padding: 0.36rem 0.8rem;
-  color: #22948c;
-  background: #fff7d9;
-  border: 0.22rem solid #2ca9a2;
-  border-radius: 999px;
-  box-shadow: 0 0.16rem 0 rgb(25 91 87 / 0.12);
-  font: inherit;
-  font-size: 1.32rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  width: clamp(7.4rem, 22vw, 9.5rem);
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 1.5rem;
+  filter: drop-shadow(0 0.16rem 0.18rem rgb(25 91 87 / 0.14));
 }
+.profile-card__checkin img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
 
 .profile-stats {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 3.2rem 0 0;
+  margin: 2.05rem 0 0;
   color: #fffbe3;
+  transform: translateY(-0.25rem);
   text-shadow: 0 0.08rem 0.25rem rgb(66 54 41 / 0.18);
 }
 
@@ -226,11 +218,20 @@ const favorites = [
   position: relative;
   z-index: 1;
   max-width: 30rem;
-  margin: 1.35rem auto 0;
-  padding: 2.2rem 1.7rem 3rem;
-  background:
-    linear-gradient(180deg, rgb(255 252 222 / 0.78), rgb(255 252 222 / 0.88)),
-    var(--xiqu-app-bg-image) center top / cover no-repeat;
+  margin: -2.35rem auto 0;
+  padding: 2.85rem 1.7rem 3rem;
+  background-image:
+    linear-gradient(180deg, rgb(255 252 222 / 0.72), rgb(255 252 222 / 0.82)),
+    var(--xiqu-app-bg-image);
+  background-position:
+    center,
+    left top;
+  background-size:
+    auto,
+    22rem auto;
+  background-repeat:
+    no-repeat,
+    repeat;
   border-radius: 2.2rem 2.2rem 0 0;
   box-shadow: 0 -0.45rem 1rem rgb(60 56 43 / 0.04);
 }
@@ -281,31 +282,91 @@ const favorites = [
   background: #1fa6a0;
 }
 
-@media (max-width: 380px) {
-  .profile-hero,
-  .profile-content {
+@media (max-width: 480px) {
+  .profile-hero {
     padding-right: 1.35rem;
     padding-left: 1.35rem;
   }
 
   .profile-card {
-    grid-template-columns: 4.4rem 1fr;
+    grid-template-columns: 4.6rem minmax(0, 1fr) 6.8rem;
+    gap: 0.72rem;
+    transform: translateY(-0.2rem);
   }
 
   .profile-card__avatar {
-    width: 4.4rem;
-    height: 4.4rem;
+    width: 4.6rem;
+    height: 4.6rem;
+  }
+
+  .profile-card__name {
+    font-size: clamp(1.72rem, 10vw, 2.1rem);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .profile-card__tag {
+    padding-inline: 0.6rem;
+    font-size: 1rem;
+    white-space: nowrap;
   }
 
   .profile-card__checkin {
-    grid-column: 2;
-    justify-self: start;
-    min-height: 2.35rem;
-    font-size: 1.12rem;
+    width: 6.8rem;
+    justify-self: end;
+    border-radius: 1.15rem;
   }
 
-  .profile-grid {
-    gap: 1.25rem;
+  .profile-stats {
+    margin-top: 1.85rem;
+    transform: none;
+  }
+
+  .profile-stats__item {
+    min-width: 0;
+    padding: 0 0.45rem;
+  }
+
+  .profile-stats__item dd {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .profile-stats__item dd span {
+    margin-right: 0.1rem;
+    font-size: clamp(2.35rem, 12.5vw, 3rem);
+  }
+
+  .profile-stats__item:nth-child(2) dd {
+    font-size: 0.82rem;
+  }
+
+  .profile-stats__item:nth-child(2) dd span {
+    font-size: clamp(2.2rem, 11.4vw, 2.85rem);
+  }
+
+  .profile-stats__item dt {
+    font-size: 1.12rem;
+    line-height: 1.12;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .profile-stats__item i {
+    top: 0.25rem;
+    right: 0;
+    height: 3.7rem;
+  }
+
+  .profile-content {
+    padding-right: 1.35rem;
+    padding-left: 1.35rem;
   }
 }
+
 </style>
