@@ -80,9 +80,8 @@ const favorites = [
   overflow: hidden;
   color: #173f3d;
   background:
-    linear-gradient(180deg, transparent 0%, transparent 43%, #f3ecd4 43%),
-    var(--xiqu-app-bg-image) center top / cover no-repeat,
-    #f3ecd4;
+    var(--xiqu-app-bg-image) center top / min(100%, 30rem) auto repeat,
+    var(--xiqu-app-bg-color);
   font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
 }
 
@@ -92,8 +91,7 @@ const favorites = [
   content: "";
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 12%, rgb(255 255 255 / 0.2), transparent 22%),
-    linear-gradient(180deg, transparent 0 88%, rgb(191 51 59 / 0.92) 96% 100%);
+    radial-gradient(circle at 18% 12%, rgb(255 255 255 / 0.2), transparent 22%);
   mix-blend-mode: soft-light;
 }
 
@@ -220,18 +218,9 @@ const favorites = [
   max-width: 30rem;
   margin: -2.35rem auto 0;
   padding: 2.85rem 1.7rem 3rem;
-  background-image:
-    linear-gradient(180deg, rgb(255 252 222 / 0.72), rgb(255 252 222 / 0.82)),
-    var(--xiqu-app-bg-image);
-  background-position:
-    center,
-    left top;
-  background-size:
-    auto,
-    22rem auto;
-  background-repeat:
-    no-repeat,
-    repeat;
+  background:
+    var(--xiqu-app-bg-image) center top / min(100%, 30rem) auto repeat,
+    var(--xiqu-app-bg-color);
   border-radius: 2.2rem 2.2rem 0 0;
   box-shadow: 0 -0.45rem 1rem rgb(60 56 43 / 0.04);
 }

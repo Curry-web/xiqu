@@ -1,9 +1,37 @@
-node_modules
-.pnpm-store
-dist
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+**/.pnpm-store/
+
+# Build outputs and caches
+dist/
+**/dist/
+coverage/
+**/coverage/
+.vite/
+**/.vite/
+*.tsbuildinfo
+
+# System / local files
 .DS_Store
 *.local
-coverage
-.vite
-*.tsbuildinfo
 publish.sh
+
+# Local environment secrets
+.env
+.env.*
+!.env.example
+.env_bk
+*.env.bak
+*.env.backup
+
+# Local source materials and generated knowledge base
+2026大创项目（戏曲智能体）/
+wiki/
+
+# Agent runtime-only data
+agent/memory/
+agent/logs/
+agent/tmp/
+agent/.cache/

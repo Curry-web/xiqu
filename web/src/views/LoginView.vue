@@ -50,12 +50,15 @@ async function submitLogin() {
 </script>
 
 <template>
-  <main class="min-h-screen bg-[#efe0d9] text-[#1f2422]">
+  <main
+    class="min-h-screen text-[#1f2422]"
+    style="background: var(--xiqu-app-bg-image) center top / min(100%, 30rem) auto repeat, var(--xiqu-app-bg-color)"
+  >
     <section
       class="mx-auto flex min-h-screen w-full max-w-md flex-col items-center overflow-hidden bg-cover bg-center px-8 pt-[29vh]"
-      :style="{ backgroundImage: `url(${loginBgUrl})` }"
+      :style="{ backgroundColor: 'var(--xiqu-app-bg-color)', backgroundImage: `url(${loginBgUrl})` }"
     >
-      <img class="h-36 w-36 rounded-full object-cover mix-blend-multiply" :src="loginAvatarUrl" alt="戏曲头像" />
+      <img class="h-36 w-36 rounded-full object-cover" :src="loginAvatarUrl" alt="戏曲头像" />
 
       <input
         v-model="phone"

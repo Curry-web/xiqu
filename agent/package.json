@@ -1,0 +1,14 @@
+{
+  "name": "@xiqu/agent",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node api/server.mjs",
+    "start": "node api/server.mjs",
+    "smoke": "bash scripts/smoke_agent.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
