@@ -35,3 +35,7 @@ agent/memory/
 agent/logs/
 agent/tmp/
 agent/.cache/
+
+# Server runtime uploads
+server/uploads/*
+!server/uploads/.gitkeep

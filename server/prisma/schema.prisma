@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  phone           String            @unique
+  nickname        String
+  passwordHash    String            @map("password_hash")
+  avatarUrl       String?           @map("avatar_url")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  practiceRecords PracticeRecord[]
+  recordingFiles  RecordingUpload[]
+
+  @@map("users")
+}
+
+model HomeOpening {
+  id          Int      @id @default(autoincrement())
+  title       String
+  venue       String
+  startTime   DateTime @map("start_time") @db.Time(0)
+  openingDate DateTime @default(now()) @map("opening_date") @db.Date
+  imagePath   String   @map("image_path")
+  description String   @default("")
+  isFeatured  Boolean  @default(false) @map("is_featured")
+  sortOrder   Int      @default(0) @map("sort_order")
+  status      String   @default("published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([openingDate, status, sortOrder, startTime])
+  @@map("home_openings")
+}
+
+model Opera {
+  id          Int      @id @default(autoincrement())
+  title       String
+  genre       String
+  coverPath   String?  @map("cover_path")
+  summary     String   @default("")
+  status      String   @default("published")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status, sortOrder])
+  @@map("operas")
+}
+
+model PracticeRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  type      String
+  minutes   Int
+  note      String   @default("")
+  practicedAt DateTime @default(now()) @map("practiced_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, practicedAt])
+  @@map("practice_records")
+}
+
+model RecordingUpload {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  filePath  String   @map("file_path")
+  mimeType  String   @map("mime_type")
+  sizeBytes Int      @map("size_bytes")
+  durationSeconds Int? @map("duration_seconds")
+  refText   String?  @map("ref_text")
+  scoreStatus String @default("pending") @map("score_status")
+  totalScore Float? @map("total_score")
+  accuracyScore Float? @map("accuracy_score")
+  fluencyScore Float? @map("fluency_score")
+  completionScore Float? @map("completion_score")
+  feedback  String   @default("")
+  scoreRaw  Json?    @map("score_raw")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("recording_uploads")
+}

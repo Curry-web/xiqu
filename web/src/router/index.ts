@@ -1,14 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
+import OnboardingView from '../views/OnboardingView.vue'
+import OpeningDetailView from '../views/OpeningDetailView.vue'
 import OperaView from '../views/OperaView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import StageView from '../views/StageView.vue'
 import TicketView from '../views/TicketView.vue'
 
+const ONBOARDING_STORAGE_KEY = 'xiqu.onboarding.seen'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: OnboardingView,
+      meta: {
+        title: '启动页 - 戏曲',
+        showTabbar: false,
+      },
+    },
     {
       path: '/',
       name: 'home',
@@ -23,6 +36,15 @@ const router = createRouter({
       component: OperaView,
       meta: {
         title: '戏单 - 戏曲',
+      },
+    },
+    {
+      path: '/opening/:id',
+      name: 'opening-detail',
+      component: OpeningDetailView,
+      meta: {
+        title: '今日开场 - 戏曲',
+        showTabbar: false,
       },
     },
     {
@@ -62,6 +84,14 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  if (typeof window !== 'undefined' && to.name !== 'onboarding') {
+    const hasSeenOnboarding = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1'
+
+    if (!hasSeenOnboarding) {
+      return { name: 'onboarding' }
+    }
+  }
+
   document.title = typeof to.meta.title === 'string' ? to.meta.title : '戏曲'
 })
 
