@@ -1,31 +1,119 @@
 <script setup lang="ts">
+import { nextTick, ref } from 'vue'
 import navMaskUrl from '../assets/nav/nav-mask.png'
 
-const answerSections = [
-  {
-    title: '历史地位',
-    content:
-      '昆曲发源更早，被称为“百戏之祖”；京剧形成较晚，是影响力很大的“国粹”剧种。',
-  },
-  {
-    title: '音乐唱腔',
-    content:
-      '昆曲多用曲牌体，唱腔细腻婉转；京剧多用板腔体，节奏和板式变化更鲜明。',
-  },
-  {
-    title: '表演风格',
-    content:
-      '昆曲讲究雅致、细腻、连绵；京剧更程式化，节奏感和舞台表现力更强。',
-  },
-]
+type AgentSource = {
+  title?: string
+  path?: string
+  sourceUrls?: string[]
+}
 
-const sources = ['昆曲', '京剧', 'wiki/concepts/kunqu-opera.md', 'wiki/concepts/shuixiu.md']
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: AgentSource[]
+}
+
+const agentAskUrl =
+  import.meta.env.VITE_AGENT_ASK_URL || 'https://lab.colourfuldawn.com/xiqu-agent-api/agent/ask'
+const agentApiBaseUrl = agentAskUrl.replace(/\/ask\/?$/, '')
+const inputText = ref('')
+const loading = ref(false)
+const messagesContainer = ref<HTMLElement | null>(null)
+const messages = ref<ChatMessage[]>([
+  {
+    role: 'assistant',
+    content: '我是曲小知，可以问我戏曲、京剧、昆曲、剧目、唱腔等问题。',
+  },
+])
 
 const quickReplies = [
   '昆曲为什么被称为百戏之祖？',
   '京剧有哪些经典剧目？',
   '初学者先了解京剧还是昆曲？',
 ]
+
+function scrollToBottom() {
+  nextTick(() => {
+    const container = messagesContainer.value
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  })
+}
+
+function normalizeSourceUrl(url: string) {
+  if (/^https?:\/\//.test(url)) return url
+  if (url.startsWith('/api/agent/')) {
+    return `${agentApiBaseUrl}${url.replace('/api/agent', '')}`
+  }
+  return new URL(url, agentAskUrl).toString()
+}
+
+function getSourceUrl(source: AgentSource) {
+  const firstUrl = source.sourceUrls?.[0]
+  if (firstUrl) return normalizeSourceUrl(firstUrl)
+  if (source.path) {
+    return `${agentApiBaseUrl}/source?path=${encodeURIComponent(source.path)}`
+  }
+  return ''
+}
+
+function getSourceLabel(source: AgentSource) {
+  return source.title || source.path || '原始资料'
+}
+
+function toRequestMessages(nextUserMessage: ChatMessage) {
+  return [...messages.value, nextUserMessage].map((message) => ({
+    role: message.role,
+    content: message.content,
+  }))
+}
+
+async function sendMessage(question = inputText.value) {
+  const text = question.trim()
+  if (!text || loading.value) return
+
+  const userMessage: ChatMessage = { role: 'user', content: text }
+  const requestMessages = toRequestMessages(userMessage)
+  messages.value.push(userMessage)
+  inputText.value = ''
+  loading.value = true
+  scrollToBottom()
+
+  try {
+    const response = await fetch(agentAskUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question: text,
+        messages: requestMessages,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`请求失败：${response.status}`)
+    }
+
+    const data = await response.json()
+    messages.value.push({
+      role: 'assistant',
+      content: data.answer || '曲小知暂时没有找到合适答案。',
+      sources: Array.isArray(data.sources) ? data.sources : [],
+    })
+  } catch (error) {
+    console.error(error)
+    messages.value.push({
+      role: 'assistant',
+      content: '曲小知暂时连接不上，请稍后再试。',
+    })
+  } finally {
+    loading.value = false
+    scrollToBottom()
+  }
+}
 </script>
 
 <template>
@@ -42,38 +130,53 @@ const quickReplies = [
       </header>
 
       <section class="agent-chat-panel" aria-label="聊天内容">
-        <div class="agent-chat-messages">
-          <article class="chat-bubble chat-bubble--user">
-            <p>京剧和昆曲有什么区别？</p>
-          </article>
+        <div ref="messagesContainer" class="agent-chat-messages">
+          <article
+            v-for="(message, index) in messages"
+            :key="`${message.role}-${index}`"
+            :class="[
+              'chat-bubble',
+              message.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant',
+            ]"
+          >
+            <p class="chat-message-content">{{ message.content }}</p>
 
-          <article class="chat-bubble chat-bubble--assistant">
-            <p class="answer-lead">京剧和昆曲都是中国戏曲瑰宝，主要区别可以从三点看：</p>
-
-            <section v-for="item in answerSections" :key="item.title" class="answer-section">
-              <h2>{{ item.title }}</h2>
-              <p>{{ item.content }}</p>
-            </section>
-
-            <p class="answer-summary">简单说，昆曲像婉转细腻的古典诗词；京剧更像节奏鲜明、气势饱满的舞台大戏。</p>
-
-            <details class="answer-sources">
-              <summary>参考资料 · {{ sources.length }}</summary>
+            <details v-if="message.role === 'assistant' && message.sources?.length" class="answer-sources">
+              <summary>参考资料 · {{ message.sources.length }}</summary>
               <ul>
-                <li v-for="source in sources" :key="source">{{ source }}</li>
+                <li v-for="source in message.sources" :key="source.path || source.title">
+                  <a v-if="getSourceUrl(source)" :href="getSourceUrl(source)" target="_blank" rel="noopener noreferrer">
+                    {{ getSourceLabel(source) }}
+                  </a>
+                  <span v-else>{{ getSourceLabel(source) }}</span>
+                </li>
               </ul>
             </details>
           </article>
 
           <div class="chat-quick-replies" aria-label="相关追问">
-            <button v-for="reply in quickReplies" :key="reply" type="button">{{ reply }}</button>
+            <button
+              v-for="reply in quickReplies"
+              :key="reply"
+              type="button"
+              :disabled="loading"
+              @click="sendMessage(reply)"
+            >
+              {{ reply }}
+            </button>
           </div>
         </div>
 
-        <form class="agent-chat-input" @submit.prevent>
+        <form class="agent-chat-input" @submit.prevent="sendMessage()">
           <label class="sr-only" for="agent-chat-message">输入问题</label>
-          <input id="agent-chat-message" type="text" placeholder="快来和曲小知对话吧" />
-          <button type="submit" aria-label="发送消息">
+          <input
+            id="agent-chat-message"
+            v-model="inputText"
+            type="text"
+            :disabled="loading"
+            :placeholder="loading ? '曲小知思考中…' : '快来和曲小知对话吧'"
+          />
+          <button type="submit" :disabled="loading || !inputText.trim()" aria-label="发送消息">
             <span aria-hidden="true" />
           </button>
         </form>
@@ -201,7 +304,7 @@ const quickReplies = [
 .chat-bubble {
   margin: 0 auto;
   color: #41a7a0;
-  font-family: Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: inherit;
   font-size: clamp(0.9rem, 3.9vw, 1.08rem);
   font-weight: 700;
   line-height: 1.55;
@@ -214,6 +317,10 @@ const quickReplies = [
 
 .chat-bubble p + p {
   margin-top: 0.24rem;
+}
+
+.chat-message-content {
+  white-space: pre-wrap;
 }
 
 .chat-bubble--user {
@@ -286,6 +393,12 @@ const quickReplies = [
   margin: 0.48rem 0 0;
 }
 
+.answer-sources a {
+  color: #2f8f89;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
 .chat-quick-replies {
   display: flex;
   flex-wrap: wrap;
@@ -299,10 +412,15 @@ const quickReplies = [
   background: rgb(255 255 255 / 0.58);
   border: 1px solid rgb(65 167 160 / 0.3);
   border-radius: 999px;
-  font-family: Inter, "PingFang SC", sans-serif;
+  font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
   box-shadow: 0 0.22rem 0.62rem rgb(61 151 143 / 0.12);
+}
+
+.chat-quick-replies button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .agent-chat-input {
@@ -328,7 +446,7 @@ const quickReplies = [
   background: transparent;
   border: 0;
   outline: 0;
-  font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
+  font-family: inherit;
   font-size: clamp(1.05rem, 4.9vw, 1.45rem);
   letter-spacing: 0.08em;
 }
@@ -348,6 +466,11 @@ const quickReplies = [
   border-radius: 999px;
   background: #42aaa3;
   box-shadow: 0 0.18rem 0.42rem rgb(42 134 126 / 0.18);
+}
+
+.agent-chat-input button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .agent-chat-input button span {
