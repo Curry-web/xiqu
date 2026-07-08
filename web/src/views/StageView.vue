@@ -94,7 +94,7 @@ async function sendMessage(question = inputText.value) {
     })
 
     if (!response.ok) {
-      throw new Error(`请求失败：${response.status}`)
+      throw new Error(response.status === 504 ? '曲小知回答超时，请稍后再试。' : `请求失败：${response.status}`)
     }
 
     const data = await response.json()
@@ -107,7 +107,7 @@ async function sendMessage(question = inputText.value) {
     console.error(error)
     messages.value.push({
       role: 'assistant',
-      content: '曲小知暂时连接不上，请稍后再试。',
+      content: error instanceof Error ? error.message : '曲小知暂时连接不上，请稍后再试。',
     })
   } finally {
     loading.value = false
