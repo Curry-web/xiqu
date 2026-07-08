@@ -1,31 +1,84 @@
 <script setup lang="ts">
+import { computed, nextTick, ref } from 'vue'
+import { askAgent, type AgentChatMessage, type AgentSource } from '../api/agent'
 import navMaskUrl from '../assets/nav/nav-mask.png'
 
-const answerSections = [
-  {
-    title: '历史地位',
-    content:
-      '昆曲发源更早，被称为“百戏之祖”；京剧形成较晚，是影响力很大的“国粹”剧种。',
-  },
-  {
-    title: '音乐唱腔',
-    content:
-      '昆曲多用曲牌体，唱腔细腻婉转；京剧多用板腔体，节奏和板式变化更鲜明。',
-  },
-  {
-    title: '表演风格',
-    content:
-      '昆曲讲究雅致、细腻、连绵；京剧更程式化，节奏感和舞台表现力更强。',
-  },
-]
+interface ChatMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  sources?: AgentSource[]
+}
 
-const sources = ['昆曲', '京剧', 'wiki/concepts/kunqu-opera.md', 'wiki/concepts/shuixiu.md']
+const messages = ref<ChatMessage[]>([
+  {
+    id: 1,
+    role: 'assistant',
+    content: '我是曲小知，可以帮你查戏曲知识、剧目资料、唱词典故和相关图片来源。你可以问：昆曲是什么？牡丹亭讲了什么？',
+  },
+])
+const quickReplies = ref(['昆曲是什么？', '京剧和昆曲有什么区别？', '牡丹亭有哪些经典唱段？'])
+const inputText = ref('')
+const isLoading = ref(false)
+const errorMessage = ref('')
+const messageListRef = ref<HTMLElement | null>(null)
 
-const quickReplies = [
-  '昆曲为什么被称为百戏之祖？',
-  '京剧有哪些经典剧目？',
-  '初学者先了解京剧还是昆曲？',
-]
+const history = computed<AgentChatMessage[]>(() =>
+  messages.value
+    .filter((message) => message.role === 'user' || message.role === 'assistant')
+    .slice(-8)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+)
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (messageListRef.value) {
+      messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+    }
+  })
+}
+
+async function sendQuestion(question = inputText.value) {
+  const trimmed = question.trim()
+  if (!trimmed || isLoading.value) return
+
+  errorMessage.value = ''
+  inputText.value = ''
+  messages.value.push({
+    id: Date.now(),
+    role: 'user',
+    content: trimmed,
+  })
+  scrollToBottom()
+
+  isLoading.value = true
+  try {
+    const response = await askAgent(trimmed, history.value)
+    messages.value.push({
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: response.answer || '我查到了资料，但接口没有返回文字答案。',
+      sources: response.sources || [],
+    })
+
+    if (response.relatedQuestions?.length) {
+      quickReplies.value = response.relatedQuestions.slice(0, 3)
+    }
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '曲小知暂时没有连上，请稍后再试。'
+    messages.value.push({
+      id: Date.now() + 2,
+      role: 'assistant',
+      content: errorMessage.value,
+    })
+  } finally {
+    isLoading.value = false
+    scrollToBottom()
+  }
+}
 </script>
 
 <template>
@@ -36,44 +89,52 @@ const quickReplies = [
           <img class="agent-chat-hero__avatar" :src="navMaskUrl" alt="曲小知头像" />
           <div>
             <h1>曲小知</h1>
-            <p>戏曲AI智能体</p>
+            <p>戏曲 AI 智能体</p>
           </div>
         </div>
       </header>
 
       <section class="agent-chat-panel" aria-label="聊天内容">
-        <div class="agent-chat-messages">
-          <article class="chat-bubble chat-bubble--user">
-            <p>京剧和昆曲有什么区别？</p>
-          </article>
+        <div ref="messageListRef" class="agent-chat-messages">
+          <article
+            v-for="message in messages"
+            :key="message.id"
+            :class="['chat-bubble', message.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant']"
+          >
+            <p class="chat-content">{{ message.content }}</p>
 
-          <article class="chat-bubble chat-bubble--assistant">
-            <p class="answer-lead">京剧和昆曲都是中国戏曲瑰宝，主要区别可以从三点看：</p>
-
-            <section v-for="item in answerSections" :key="item.title" class="answer-section">
-              <h2>{{ item.title }}</h2>
-              <p>{{ item.content }}</p>
-            </section>
-
-            <p class="answer-summary">简单说，昆曲像婉转细腻的古典诗词；京剧更像节奏鲜明、气势饱满的舞台大戏。</p>
-
-            <details class="answer-sources">
-              <summary>参考资料 · {{ sources.length }}</summary>
+            <details v-if="message.sources?.length" class="answer-sources">
+              <summary>参考资料 · {{ message.sources.length }}</summary>
               <ul>
-                <li v-for="source in sources" :key="source">{{ source }}</li>
+                <li v-for="source in message.sources" :key="source.path || source.title">
+                  <a v-if="source.sourceUrls?.[0]" :href="source.sourceUrls[0]" target="_blank" rel="noreferrer">
+                    {{ source.title || source.path || '查看资料' }}
+                  </a>
+                  <span v-else>{{ source.title || source.path || '资料来源' }}</span>
+                </li>
               </ul>
             </details>
           </article>
 
+          <p v-if="isLoading" class="chat-loading">曲小知正在查资料...</p>
+
           <div class="chat-quick-replies" aria-label="相关追问">
-            <button v-for="reply in quickReplies" :key="reply" type="button">{{ reply }}</button>
+            <button v-for="reply in quickReplies" :key="reply" type="button" @click="sendQuestion(reply)">
+              {{ reply }}
+            </button>
           </div>
         </div>
 
-        <form class="agent-chat-input" @submit.prevent>
+        <form class="agent-chat-input" @submit.prevent="sendQuestion()">
           <label class="sr-only" for="agent-chat-message">输入问题</label>
-          <input id="agent-chat-message" type="text" placeholder="快来和曲小知对话吧" />
-          <button type="submit" aria-label="发送消息">
+          <input
+            id="agent-chat-message"
+            v-model="inputText"
+            type="text"
+            :disabled="isLoading"
+            placeholder="快来和曲小知对话吧"
+          />
+          <button type="submit" :disabled="isLoading || !inputText.trim()" aria-label="发送消息">
             <span aria-hidden="true" />
           </button>
         </form>
@@ -124,12 +185,7 @@ const quickReplies = [
   min-height: 15.1rem;
   padding: clamp(3.2rem, 11vw, 4.45rem) 2.9rem 4.1rem;
   background:
-    linear-gradient(
-      180deg,
-      rgb(202 66 72 / 0.94) 0,
-      rgb(220 111 104 / 0.84) 44%,
-      rgb(71 166 159 / 0.78) 100%
-    ),
+    linear-gradient(180deg, rgb(202 66 72 / 0.94) 0, rgb(220 111 104 / 0.84) 44%, rgb(71 166 159 / 0.78) 100%),
     var(--xiqu-app-bg-image) center top / 30rem auto repeat;
 }
 
@@ -199,21 +255,18 @@ const quickReplies = [
 }
 
 .chat-bubble {
-  margin: 0 auto;
+  margin: 0 auto 0.8rem;
   color: #41a7a0;
   font-family: Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: clamp(0.9rem, 3.9vw, 1.08rem);
   font-weight: 700;
   line-height: 1.55;
   letter-spacing: 0.02em;
+  white-space: pre-wrap;
 }
 
-.chat-bubble p {
+.chat-content {
   margin: 0;
-}
-
-.chat-bubble p + p {
-  margin-top: 0.24rem;
 }
 
 .chat-bubble--user {
@@ -230,7 +283,6 @@ const quickReplies = [
 .chat-bubble--assistant {
   width: calc(100% - 1.35rem);
   max-width: 23rem;
-  margin-top: 0.8rem;
   padding: 0.92rem 1.05rem 0.88rem;
   border-radius: 1rem 1rem 1rem 0.18rem;
   background: rgb(255 255 255 / 0.98);
@@ -239,29 +291,13 @@ const quickReplies = [
     0 0 0.9rem rgb(61 183 172 / 0.32);
 }
 
-.answer-lead {
-  color: #2f8f89;
-}
-
-.answer-section {
-  margin-top: 0.58rem;
-}
-
-.answer-section h2 {
-  margin: 0 0 0.12rem;
-  color: #1f706c;
-  font-size: 0.9em;
-  font-weight: 800;
-}
-
-.answer-section p,
-.answer-summary {
-  color: #3c8f89;
-  font-weight: 600;
-}
-
-.answer-summary {
-  margin-top: 0.7rem;
+.chat-loading {
+  margin: 0.6rem auto;
+  color: #3a918b;
+  font-family: Inter, "PingFang SC", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .answer-sources {
@@ -284,6 +320,11 @@ const quickReplies = [
   gap: 0.28rem;
   padding-left: 1.05rem;
   margin: 0.48rem 0 0;
+}
+
+.answer-sources a {
+  color: #2f8f89;
+  text-decoration: none;
 }
 
 .chat-quick-replies {
@@ -350,6 +391,10 @@ const quickReplies = [
   box-shadow: 0 0.18rem 0.42rem rgb(42 134 126 / 0.18);
 }
 
+.agent-chat-input button:disabled {
+  opacity: 0.55;
+}
+
 .agent-chat-input button span {
   position: relative;
   width: 0.38rem;
@@ -396,10 +441,6 @@ const quickReplies = [
   .agent-chat-hero {
     padding-right: 2rem;
     padding-left: 2rem;
-  }
-
-  .agent-chat-panel {
-    border-radius: 2.2rem 2.2rem 0 0;
   }
 
   .agent-chat-input {

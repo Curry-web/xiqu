@@ -6,6 +6,7 @@ import { ZodError } from 'zod'
 import { config } from './config.js'
 import { prisma } from './db.js'
 import { authPlugin } from './plugins/auth.js'
+import { agentRoutes } from './routes/agent.js'
 import { authRoutes } from './routes/auth.js'
 import { homeRoutes } from './routes/home.js'
 import { operaRoutes } from './routes/operas.js'
@@ -53,6 +54,7 @@ await app.register(fastifyStatic, {
 })
 
 await app.register(authPlugin)
+await app.register(agentRoutes, { prefix: '/api' })
 await app.register(authRoutes, { prefix: '/api' })
 await app.register(userRoutes, { prefix: '/api' })
 await app.register(homeRoutes, { prefix: '/api' })

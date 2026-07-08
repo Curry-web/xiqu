@@ -19,6 +19,10 @@ export const config = {
     region: process.env.TENCENT_SOE_REGION || 'ap-guangzhou',
     engineType: process.env.TENCENT_SOE_ENGINE || '16k_zh',
   },
+  agent: {
+    askUrl: process.env.AGENT_REMOTE_ASK_URL || 'https://lab.colourfuldawn.com/xiqu-agent-api/agent/ask',
+    timeoutMs: Number(process.env.AGENT_REMOTE_TIMEOUT_MS || 60_000),
+  },
 }
 
 export function toPublicUrl(pathname) {
