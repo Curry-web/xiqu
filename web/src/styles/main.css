@@ -89,7 +89,7 @@ body {
 .today-opening {
   width: min(100%, 30rem);
   margin: 0 auto;
-  padding: 1.2rem 1.48rem 6.2rem;
+  padding: 1.2rem 1.48rem 1.05rem;
 }
 
 .today-opening__title {
@@ -219,8 +219,181 @@ body {
   transform: rotate(45deg);
 }
 
+.liyuan-color {
+  --liyuan-accent: #11699a;
+  --liyuan-block: #697da8;
+  --liyuan-pale: #cdd6ea;
+  width: min(100%, 30rem);
+  margin: 0 auto;
+  padding: 0.95rem 1.45rem 6.9rem;
+  color: #174f4b;
+  font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
+}
+
+.liyuan-color__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.liyuan-color__header h2 {
+  margin: 0;
+  color: #174f4b;
+  font-size: clamp(1.28rem, 5.7vw, 1.86rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+}
+
+.liyuan-color__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  padding: 0;
+  color: #255e59;
+  background: transparent;
+  border: 0;
+  font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
+  font-size: clamp(0.82rem, 3.3vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.liyuan-color__more span:last-child {
+  display: grid;
+  width: 1.08rem;
+  height: 1.08rem;
+  place-items: center;
+  color: #fff8e4;
+  background: #174f4b;
+  border-radius: 999px;
+  font-family: Inter, "PingFang SC", sans-serif;
+  font-size: 1.04rem;
+  line-height: 1;
+}
+
+.liyuan-color__symbol {
+  width: min(81%, 21.4rem);
+  margin: 0 auto 0.62rem;
+}
+
+.liyuan-color__symbol img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0.26rem 0.34rem rgb(21 74 70 / 0.14));
+}
+
+.liyuan-color__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.03fr);
+  gap: 0.78rem 1.05rem;
+  align-items: start;
+}
+
+.liyuan-color__panel {
+  min-width: 0;
+}
+
+.liyuan-color__panel--names {
+  grid-column: 1 / -1;
+}
+
+.liyuan-color__panel h3 {
+  margin: 0 0 0.33rem;
+  color: #174f4b;
+  font-size: clamp(1.02rem, 4.4vw, 1.42rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+.liyuan-color__name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.18rem;
+}
+
+.liyuan-color__material-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 5.1rem;
+  margin: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--liyuan-block) 86%, white 14%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.liyuan-color__material-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  object-position: center;
+}
+
+.liyuan-color__material-card figcaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 0.26rem 0.4rem;
+  color: #fffdf3;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgb(18 50 49 / 0.56);
+}
+
+.liyuan-color__placeholder {
+  display: block;
+  min-height: 5.1rem;
+  background: color-mix(in srgb, var(--liyuan-block) 86%, white 14%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.liyuan-color__placeholder--tall {
+  min-height: 11.8rem;
+  background: color-mix(in srgb, var(--liyuan-pale) 86%, white 14%);
+}
+
+.liyuan-color__material-card--tall {
+  min-height: 11.8rem;
+  background: color-mix(in srgb, var(--liyuan-pale) 86%, white 14%);
+}
+
+.liyuan-color__panel--face {
+  align-self: end;
+}
+
+.liyuan-color__face {
+  display: block;
+  width: min(100%, 10.9rem);
+  margin: -0.2rem auto 0;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 0.18rem;
+  filter:
+    contrast(1.04)
+    saturate(1.06)
+    drop-shadow(0 0.18rem 0.16rem rgb(55 32 20 / 0.08))
+    drop-shadow(0 0 0.28rem color-mix(in srgb, var(--liyuan-accent) 26%, transparent));
+}
+
 @media (max-width: 360px) {
   .today-opening {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .liyuan-color {
     padding-right: 1rem;
     padding-left: 1rem;
   }
@@ -236,6 +409,30 @@ body {
   .opening-card__button {
     width: 2rem;
     height: 2rem;
+  }
+
+  .liyuan-color__grid {
+    gap: 0.68rem 0.72rem;
+  }
+
+  .liyuan-color__name-grid {
+    gap: 0.72rem;
+  }
+
+  .liyuan-color__placeholder {
+    min-height: 4.42rem;
+  }
+
+  .liyuan-color__material-card {
+    min-height: 4.42rem;
+  }
+
+  .liyuan-color__placeholder--tall {
+    min-height: 10.2rem;
+  }
+
+  .liyuan-color__material-card--tall {
+    min-height: 10.2rem;
   }
 }
 

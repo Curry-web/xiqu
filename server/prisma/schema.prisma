@@ -39,6 +39,27 @@ model HomeOpening {
   @@map("home_openings")
 }
 
+model LiyuanMaterial {
+  id                 Int      @id @default(autoincrement())
+  category           String
+  colorName          String   @map("color_name")
+  colorCode          String   @map("color_code")
+  title              String
+  imagePath          String   @unique @map("image_path")
+  sourceFileName     String   @map("source_file_name")
+  sourceRelativePath String   @default("") @map("source_relative_path")
+  primaryCategory    String   @default("") @map("primary_category")
+  secondaryCategory  String   @default("") @map("secondary_category")
+  tertiaryCategory   String   @default("") @map("tertiary_category")
+  weight             Int      @default(1)
+  status             String   @default("published")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([category, colorCode, status])
+  @@map("liyuan_materials")
+}
+
 model Opera {
   id          Int      @id @default(autoincrement())
   title       String

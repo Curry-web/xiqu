@@ -21,6 +21,37 @@ function mapOpening(opening) {
   }
 }
 
+function mapLiyuanMaterial(material) {
+  return {
+    id: material.id,
+    category: material.category,
+    colorName: material.colorName,
+    colorCode: material.colorCode,
+    title: material.title,
+    imagePath: material.imagePath,
+    imageUrl: toPublicUrl(material.imagePath),
+    sourceFileName: material.sourceFileName,
+  }
+}
+
+function dailySeed(value) {
+  return [...value].reduce((seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0, 2166136261)
+}
+
+function pickDailyMaterials(items, count, salt) {
+  if (items.length <= count) return items
+
+  const day = new Date().toISOString().slice(0, 10)
+  const start = dailySeed(`${day}:${salt}`) % items.length
+  return Array.from({ length: count }, (_, index) => items[(start + index) % items.length])
+}
+
+function pickDailyColor(colors) {
+  if (!colors.length) return ''
+  const day = new Date().toISOString().slice(0, 10)
+  return colors[dailySeed(`${day}:liyuan-color`) % colors.length]
+}
+
 export async function homeRoutes(app) {
   app.get('/home/today-openings', async () => {
     const items = await prisma.$queryRaw`
@@ -39,5 +70,40 @@ export async function homeRoutes(app) {
     `
 
     return { items: items.map(mapOpening) }
+  })
+
+  app.get('/home/liyuan-materials', async (request) => {
+    const requestedColorCode = String(request.query?.colorCode || '').trim().toLowerCase()
+    const materials = await prisma.liyuanMaterial.findMany({
+      where: {
+        status: 'published',
+      },
+      orderBy: [{ weight: 'desc' }, { id: 'asc' }],
+    })
+
+    const availableColors = [...new Set(materials.map((item) => item.colorCode))]
+      .filter((colorCode) => {
+        const sameColorMaterials = materials.filter((item) => item.colorCode === colorCode)
+        return sameColorMaterials.some((item) => item.category === 'performer') &&
+          sameColorMaterials.some((item) => item.category === 'costume')
+      })
+
+    const requestedMaterials = requestedColorCode
+      ? materials.filter((item) => item.colorCode === requestedColorCode)
+      : []
+    const requestedHasBoth = requestedMaterials.some((item) => item.category === 'performer') &&
+      requestedMaterials.some((item) => item.category === 'costume')
+    const colorCode = requestedHasBoth ? requestedColorCode : pickDailyColor(availableColors)
+    const sameColorMaterials = colorCode ? materials.filter((item) => item.colorCode === colorCode) : []
+    const performers = sameColorMaterials.filter((item) => item.category === 'performer')
+    const costumes = sameColorMaterials.filter((item) => item.category === 'costume')
+
+    return {
+      colorCode,
+      requestedColorCode,
+      availableColors,
+      performers: pickDailyMaterials(performers, 2, `${colorCode}:performer`).map(mapLiyuanMaterial),
+      costumes: pickDailyMaterials(costumes, 1, `${colorCode}:costume`).map(mapLiyuanMaterial),
+    }
   })
 }
