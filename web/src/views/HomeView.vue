@@ -20,35 +20,8 @@ import yellowLiyuanUrl from '../assets/lianpu images/yellowliyuan.png'
 
 const router = useRouter()
 
-const fallbackOpenings: OpeningItem[] = [
-  {
-    id: 1,
-    title: '春江花月',
-    venue: '梨园小剧场',
-    startTime: '19:30',
-    imagePath: 'openings/today-opening-fan.png',
-    imageUrl: 'http://127.0.0.1:8788/openings/today-opening-fan.png',
-    featured: true,
-  },
-  {
-    id: 2,
-    title: '水袖折子戏',
-    venue: '兰苑厅',
-    startTime: '14:30',
-    imagePath: 'openings/opening-water-sleeves.jpg',
-    imageUrl: 'http://127.0.0.1:8788/openings/opening-water-sleeves.jpg',
-  },
-  {
-    id: 3,
-    title: '变脸火彩',
-    venue: '锦绣戏台',
-    startTime: '20:00',
-    imagePath: 'openings/opening-fire.jpg',
-    imageUrl: 'http://127.0.0.1:8788/openings/opening-fire.jpg',
-  },
-]
-
-const todayOpenings = ref<OpeningItem[]>(fallbackOpenings)
+const todayOpenings = ref<OpeningItem[]>([])
+const homeDataError = ref('')
 const liyuanMaterials = ref<{ performers: LiyuanMaterialItem[]; costumes: LiyuanMaterialItem[] }>({
   performers: [],
   costumes: [],
@@ -113,6 +86,8 @@ onMounted(async () => {
 
   if (openingsResult.status === 'fulfilled' && openingsResult.value.length > 0) {
     todayOpenings.value = openingsResult.value
+  } else if (openingsResult.status === 'rejected') {
+    homeDataError.value = '首页数据暂时无法加载，请确认后台服务已经启动'
   }
   if (materialsResult.status === 'fulfilled') {
     liyuanMaterials.value = materialsResult.value
@@ -144,9 +119,8 @@ onMounted(async () => {
           @click="goOpeningDetail(item.id)"
         >
           <img
-            v-if="item.featured"
             class="opening-card__image"
-            :src="item.imageUrl"
+            :src="item.imageUrl || homeHeroUrl"
             :alt="item.title"
             @error="handleOpeningImageError"
           />
@@ -156,6 +130,9 @@ onMounted(async () => {
           </div>
           <span class="opening-card__button" :aria-label="`查看${item.title}`"><span aria-hidden="true" /></span>
         </button>
+        <p v-if="todayOpenings.length === 0" class="today-opening__empty">
+          {{ homeDataError || '今日暂无推荐剧目' }}
+        </p>
       </div>
     </section>
 

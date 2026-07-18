@@ -10,13 +10,43 @@ interface ScoreResult {
   accuracyScore: number
   fluencyScore: number
   completionScore: number
+  lyricCompletionScore?: number
+  performanceCompletionScore?: number
+  tencentScore: number
+  tencentRawScore?: number
+  practiceScore: number
+  audioQualityScore: number
+  referenceId: string
+  referenceTitle: string
+  pitchScore: number
+  contourScore: number
+  melodyScore: number
+  rhythmScore: number
+  ornamentScore: number
+  vibratoScore: number
+  timbreScore: number
+  resonanceScore: number
+  dynamicsScore: number
+  breathScore: number
+  periodicityScore: number
+  referenceVibratoRateHz: number
+  attemptVibratoRateHz: number
+  referenceVibratoExtentCents: number
+  attemptVibratoExtentCents: number
+  pitchOffsetCents: number
+  meanPitchErrorCents: number
+  durationScore: number
+  activityScore: number
+  levelScore: number
+  clippingScore: number
+  scoringFormula: string
   feedback: string
 }
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8788'
 
-const refText = ref('海岛冰轮初转腾')
-const title = ref('贵妃醉酒练唱')
+const refText = ref('可知我常一生儿爱好，是天然。')
+const title = ref('《牡丹亭·游园》完整唱句练习')
 const isRecording = ref(false)
 const isSubmitting = ref(false)
 const elapsedSeconds = ref(0)
@@ -25,6 +55,35 @@ const audioUrl = ref('')
 const selectedFile = ref<File | null>(null)
 const selectedFileUrl = ref('')
 const scoreResult = ref<ScoreResult | null>(null)
+const isLoadingDemo = ref(false)
+
+const demoSample = {
+  id: 'mudanting-youyuan-yiju',
+  title: '《牡丹亭·游园》完整唱句练习',
+  fileName: 'mudanting-youyuan-yiju.mp4',
+  url: `${apiBaseUrl}/practice-samples/mudanting-youyuan-yiju.mp4`,
+  refText: '可知我常一生儿爱好，是天然。',
+}
+
+function pitchOffsetLabel(result: ScoreResult) {
+  const offset = Math.round(result.pitchOffsetCents)
+  if (Math.abs(offset) < 35) return '音区接近'
+  return offset > 0 ? `偏高 ${offset} 音分` : `偏低 ${Math.abs(offset)} 音分`
+}
+
+function lyricRecognitionLabel(result: ScoreResult) {
+  if (Number.isFinite(result.tencentRawScore)) return Math.round(result.tencentScore)
+  const completion = result.lyricCompletionScore ?? result.completionScore
+  return Math.round(
+    result.accuracyScore * 0.55
+      + result.fluencyScore * 0.3
+      + completion * 0.15,
+  )
+}
+
+function tencentRawLabel(result: ScoreResult) {
+  return Math.round(result.tencentRawScore ?? result.tencentScore)
+}
 
 let mediaRecorder: MediaRecorder | null = null
 let mediaStream: MediaStream | null = null
@@ -141,6 +200,29 @@ function handleFileChange(event: Event) {
   selectedFileUrl.value = URL.createObjectURL(file)
 }
 
+async function useDemoSample() {
+  isLoadingDemo.value = true
+
+  try {
+    const response = await fetch(demoSample.url)
+    if (!response.ok) throw new Error('示范片段暂时无法加载')
+
+    const blob = await response.blob()
+    releasePreviewUrl()
+    audioBlob.value = null
+    scoreResult.value = null
+    selectedFile.value = new File([blob], demoSample.fileName, { type: 'video/mp4' })
+    selectedFileUrl.value = URL.createObjectURL(selectedFile.value)
+    title.value = demoSample.title
+    refText.value = demoSample.refText
+    showToast('已载入完整唱句示范，可直接试听或提交评分')
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : '示范片段加载失败')
+  } finally {
+    isLoadingDemo.value = false
+  }
+}
+
 async function submitScore() {
   if (!refText.value.trim()) {
     showToast('请先填写标准唱词')
@@ -159,6 +241,7 @@ async function submitScore() {
     const formData = new FormData()
     formData.append('title', title.value.trim() || '唱戏评分')
     formData.append('refText', refText.value.trim())
+    formData.append('referenceId', demoSample.id)
     formData.append(
       'audio',
       practiceFile,
@@ -201,6 +284,17 @@ onBeforeUnmount(() => {
       </header>
 
       <section class="practice-score-panel">
+        <section class="practice-demo" aria-label="完整唱句练唱示范">
+          <div>
+            <span>完整唱句示范 · 25 秒</span>
+            <strong>《牡丹亭·游园》片段</strong>
+            <small>先试听示范，再演唱同一片段；系统会比对唱词、旋律、板眼、颤音与声学特征。</small>
+          </div>
+          <button type="button" :disabled="isLoadingDemo || isRecording" @click="useDemoSample">
+            {{ isLoadingDemo ? '载入中' : '使用示范' }}
+          </button>
+        </section>
+
         <label class="practice-field">
           <span>练习名称</span>
           <input v-model="title" maxlength="40" type="text" />
@@ -208,7 +302,7 @@ onBeforeUnmount(() => {
 
         <label class="practice-field">
           <span>标准唱词</span>
-          <textarea v-model="refText" maxlength="120" rows="3" />
+          <textarea v-model="refText" maxlength="120" readonly rows="3" />
         </label>
 
         <div class="practice-recorder">
@@ -253,26 +347,53 @@ onBeforeUnmount(() => {
 
       <section v-if="scoreResult" class="practice-score-result">
         <div class="practice-score-result__main">
-          <span>综合得分</span>
-          <strong>{{ scoreResult.totalScore }}</strong>
+          <span>练功综合分</span>
+          <strong>{{ scoreResult.practiceScore || scoreResult.totalScore }}</strong>
+        </div>
+
+        <div class="practice-score-source">
+          <span>唱词识别参考 {{ lyricRecognitionLabel(scoreResult) }}/100</span>
+          <span>音准旋律 {{ scoreResult.melodyScore }}</span>
+          <span>板眼拖腔 {{ scoreResult.rhythmScore }}</span>
+          <span>颤音转音 {{ scoreResult.ornamentScore }}</span>
+          <span>音色共鸣 {{ scoreResult.timbreScore }}</span>
+          <span>气息录音 {{ scoreResult.breathScore }}</span>
+        </div>
+        <p class="practice-tencent-raw">
+          腾讯原始建议分 {{ tencentRawLabel(scoreResult) }}/100；戏曲拖腔容易造成漏字，原始分仅作接口记录。
+        </p>
+
+        <div class="practice-opera-grid">
+          <div><span>颤音相似</span><strong>{{ scoreResult.vibratoScore }}</strong></div>
+          <div><span>中频共鸣</span><strong>{{ scoreResult.resonanceScore }}</strong></div>
+          <div><span>动态气息</span><strong>{{ scoreResult.dynamicsScore }}</strong></div>
         </div>
 
         <div class="practice-score-grid">
           <div>
-            <span>唱词准确</span>
-            <strong>{{ scoreResult.accuracyScore }}</strong>
+            <span>绝对音高</span>
+            <strong>{{ scoreResult.pitchScore }}</strong>
           </div>
           <div>
-            <span>流畅稳定</span>
-            <strong>{{ scoreResult.fluencyScore }}</strong>
+            <span>旋律走向</span>
+            <strong>{{ scoreResult.contourScore }}</strong>
           </div>
           <div>
-            <span>完整程度</span>
-            <strong>{{ scoreResult.completionScore }}</strong>
+            <span>整体音区</span>
+            <strong class="practice-pitch-offset">{{ pitchOffsetLabel(scoreResult) }}</strong>
           </div>
         </div>
 
+        <div class="practice-recording-grid">
+          <div><span>唱词准确（腾讯）</span><strong>{{ scoreResult.accuracyScore }}<small>/100</small></strong></div>
+          <div><span>流畅参考（腾讯）</span><strong>{{ scoreResult.fluencyScore }}<small>/100</small></strong></div>
+          <div><span>唱词覆盖（腾讯）</span><strong>{{ scoreResult.lyricCompletionScore ?? scoreResult.completionScore }}<small>/100</small></strong></div>
+          <div><span>演唱完整度（综合）</span><strong>{{ scoreResult.performanceCompletionScore ?? scoreResult.completionScore }}<small>/100</small></strong></div>
+        </div>
+
+        <p v-if="scoreResult.scoringFormula" class="practice-formula">{{ scoreResult.scoringFormula }}</p>
         <p class="practice-feedback">{{ scoreResult.feedback }}</p>
+        <p class="practice-disclaimer">当前为戏曲声学评分 v4：腾讯云唱词识别仅占 10%，旋律、板眼和装饰音比对是主要依据。颤音、音色和气息属于自动声学估计，会受伴奏、麦克风和环境影响；结果用于练习反馈，不代替专业老师对字韵、行腔与流派风格的判断。</p>
       </section>
     </section>
   </main>
@@ -321,6 +442,24 @@ onBeforeUnmount(() => {
   gap: 1rem;
   padding: 1rem;
 }
+
+.practice-demo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.78rem 0.85rem;
+  border: 0.08rem solid rgb(67 207 198 / 0.38);
+  border-radius: 0.58rem;
+  background: rgb(67 207 198 / 0.1);
+}
+
+.practice-demo div { display: grid; gap: 0.16rem; min-width: 0; }
+.practice-demo span { color: #b94b54; font-size: 0.78rem; font-weight: 700; }
+.practice-demo strong { color: #164c48; font-size: 0.98rem; }
+.practice-demo small { color: rgb(22 76 72 / 0.75); font-size: 0.74rem; line-height: 1.35; }
+.practice-demo button { flex: 0 0 auto; padding: 0.56rem 0.72rem; color: #fff8e4; border: 0; border-radius: 0.48rem; background: #43cfc6; font: inherit; font-size: 0.82rem; font-weight: 700; }
+.practice-demo button:disabled { opacity: 0.58; }
 
 .practice-field {
   display: grid;
@@ -470,6 +609,43 @@ onBeforeUnmount(() => {
   margin-top: 0.9rem;
 }
 
+.practice-score-source,
+.practice-recording-grid,
+.practice-opera-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.56rem;
+  margin-top: 0.86rem;
+}
+
+.practice-score-source span {
+  padding: 0.56rem;
+  color: #277c76;
+  border-radius: 0.44rem;
+  background: rgb(67 207 198 / 0.1);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.practice-tencent-raw {
+  margin: 0.58rem 0 0;
+  color: #6d7f78;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.practice-recording-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.practice-opera-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.practice-recording-grid div,
+.practice-opera-grid div { padding: 0.58rem 0.35rem; border-radius: 0.44rem; background: rgb(255 255 255 / 0.72); text-align: center; }
+.practice-recording-grid span,
+.practice-opera-grid span { display: block; color: #b94b54; font-size: 0.74rem; font-weight: 700; }
+.practice-recording-grid strong,
+.practice-opera-grid strong { display: block; margin-top: 0.2rem; color: #164c48; font-size: 1.14rem; }
+.practice-formula { margin: 0.92rem 0 0; color: #277c76; font-size: 0.76rem; font-weight: 700; line-height: 1.45; }
+
 .practice-score-grid div {
   border-radius: 0.5rem;
   background: rgb(255 255 255 / 0.78);
@@ -484,10 +660,25 @@ onBeforeUnmount(() => {
   font-size: 1.42rem;
 }
 
+.practice-score-grid .practice-pitch-offset {
+  min-height: 2.5rem;
+  display: grid;
+  place-items: center;
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
 .practice-feedback {
   margin: 0.95rem 0 0;
   color: #164c48;
   font-weight: 700;
   line-height: 1.7;
+}
+
+.practice-disclaimer {
+  margin: 0.7rem 0 0;
+  color: rgb(22 76 72 / 0.68);
+  font-size: 0.72rem;
+  line-height: 1.55;
 }
 </style>

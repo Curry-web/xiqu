@@ -17,6 +17,8 @@ model User {
   updatedAt       DateTime          @updatedAt @map("updated_at")
   practiceRecords PracticeRecord[]
   recordingFiles  RecordingUpload[]
+  operaFavorites  OperaFavorite[]
+  assetFavorites  OperaAssetFavorite[]
 
   @@map("users")
 }
@@ -61,53 +63,113 @@ model LiyuanMaterial {
 }
 
 model Opera {
-  id          Int      @id @default(autoincrement())
-  title       String
-  genre       String
-  coverPath   String?  @map("cover_path")
-  summary     String   @default("")
-  status      String   @default("published")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                  Int             @id @default(autoincrement())
+  title               String
+  genre               String
+  coverPath           String?         @map("cover_path")
+  summary             String          @default("")
+  venue               String          @default("")
+  startTime           DateTime?       @map("start_time") @db.Time(0)
+  contentPath         String?         @map("content_path")
+  contentDetailPath   String?         @map("content_detail_path")
+  knowledgeTitle      String          @default("") @map("knowledge_title")
+  knowledgePath       String?         @map("knowledge_path")
+  knowledgeDetailPath String?         @map("knowledge_detail_path")
+  sourceDocumentPath  String          @default("") @map("source_document_path")
+  isDailyCandidate    Boolean         @default(false) @map("is_daily_candidate")
+  status              String          @default("published")
+  sortOrder           Int             @default(0) @map("sort_order")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+  assets              OperaAsset[]
+  favorites           OperaFavorite[]
 
-  @@index([status, sortOrder])
+  @@index([status, isDailyCandidate, sortOrder])
   @@map("operas")
 }
 
+model OperaAsset {
+  id                 Int      @id @default(autoincrement())
+  operaId            Int      @map("opera_id")
+  assetType          String   @map("asset_type")
+  title              String
+  imagePath          String?  @map("image_path")
+  mediaPath          String?  @map("media_path")
+  textPath           String?  @map("text_path")
+  duration           String   @default("")
+  sourceRelativePath String   @default("") @map("source_relative_path")
+  sortOrder          Int      @default(0) @map("sort_order")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  opera              Opera    @relation(fields: [operaId], references: [id], onDelete: Cascade)
+  favorites          OperaAssetFavorite[]
+
+  @@index([operaId, assetType, sortOrder])
+  @@map("opera_assets")
+}
+
+model OperaAssetFavorite {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @map("user_id")
+  assetId   Int        @map("asset_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset     OperaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assetId])
+  @@index([userId, createdAt])
+  @@map("opera_asset_favorites")
+}
+
+model OperaFavorite {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  operaId     Int      @map("opera_id")
+  sectionType String   @map("section_type")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opera       Opera    @relation(fields: [operaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, operaId, sectionType])
+  @@index([userId, createdAt])
+  @@map("opera_favorites")
+}
+
 model PracticeRecord {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  type      String
-  minutes   Int
-  note      String   @default("")
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  type        String
+  minutes     Int
+  note        String   @default("")
   practicedAt DateTime @default(now()) @map("practiced_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, practicedAt])
   @@map("practice_records")
 }
 
 model RecordingUpload {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  title     String
-  filePath  String   @map("file_path")
-  mimeType  String   @map("mime_type")
-  sizeBytes Int      @map("size_bytes")
-  durationSeconds Int? @map("duration_seconds")
-  refText   String?  @map("ref_text")
-  scoreStatus String @default("pending") @map("score_status")
-  totalScore Float? @map("total_score")
-  accuracyScore Float? @map("accuracy_score")
-  fluencyScore Float? @map("fluency_score")
-  completionScore Float? @map("completion_score")
-  feedback  String   @default("")
-  scoreRaw  Json?    @map("score_raw")
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  title           String
+  filePath        String   @map("file_path")
+  mimeType        String   @map("mime_type")
+  sizeBytes       Int      @map("size_bytes")
+  durationSeconds Int?     @map("duration_seconds")
+  refText         String?  @map("ref_text")
+  scoreStatus     String   @default("pending") @map("score_status")
+  totalScore      Float?   @map("total_score")
+  accuracyScore   Float?   @map("accuracy_score")
+  fluencyScore    Float?   @map("fluency_score")
+  completionScore Float?   @map("completion_score")
+  feedback        String   @default("")
+  scoreRaw        Json?    @map("score_raw")
+  createdAt       DateTime @default(now()) @map("created_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("recording_uploads")

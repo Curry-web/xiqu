@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "score:python": "conda run -n xiqu-score uvicorn app.main:app --app-dir ../scoring-service --host 127.0.0.1 --port 8790",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "import:liyuan-materials": "node scripts/import-liyuan-materials.mjs",
+    "import:july-operas": "node scripts/import-july-operas.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -20,6 +23,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "fastify": "^5.6.2",
+    "mammoth": "^1.12.0",
     "ws": "^8.21.0",
     "xlsx": "^0.18.5",
     "zod": "^4.1.13"

@@ -109,16 +109,27 @@ body {
   align-items: stretch;
 }
 
+.today-opening__empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 1.2rem;
+  color: #175557;
+  font-size: 0.95rem;
+  text-align: center;
+  background: rgb(255 255 255 / 72%);
+}
+
 .opening-card {
   position: relative;
   display: grid;
-  min-height: 4.32rem;
-  align-items: center;
-  padding: 0.58rem 3rem 0.58rem 0.74rem;
+  min-height: 11.55rem;
+  align-items: end;
+  padding: 0.7rem 3rem 0.66rem 0.74rem;
   overflow: hidden;
   border: 0;
   border-radius: 0.44rem;
-  background: rgb(255 255 255 / 0.94);
+  color: #fff8e4;
+  background: #246560;
   appearance: none;
   cursor: pointer;
   font: inherit;
@@ -129,10 +140,6 @@ body {
 }
 
 .opening-card--featured {
-  min-height: 11.55rem;
-  align-items: end;
-  padding: 0.7rem 3rem 0.66rem 0.74rem;
-  color: #fff8e4;
   background: #246560;
 }
 
@@ -144,7 +151,7 @@ body {
   object-fit: cover;
 }
 
-.opening-card--featured::after {
+.opening-card::after {
   position: absolute;
   inset: auto 0 0;
   height: 48%;
@@ -167,7 +174,7 @@ body {
 }
 
 .opening-card__title {
-  color: #43cfc6;
+  color: #fff8e4;
   font-family: "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif;
   font-size: clamp(1.22rem, 5.6vw, 1.7rem);
   font-weight: 700;
@@ -175,21 +182,16 @@ body {
   letter-spacing: 0.08em;
 }
 
-.opening-card--featured .opening-card__title {
-  color: #fff8e4;
+.opening-card .opening-card__title {
   text-shadow: 0 0.08rem 0.12rem rgb(30 36 32 / 0.32);
 }
 
 .opening-card__meta {
   margin-top: 0.32rem;
-  color: #3a716d;
+  color: rgb(255 248 228 / 0.86);
   font-size: clamp(0.68rem, 3.2vw, 0.84rem);
   font-weight: 700;
   line-height: 1.2;
-}
-
-.opening-card--featured .opening-card__meta {
-  color: rgb(255 248 228 / 0.86);
 }
 
 .opening-card__button {
@@ -370,7 +372,7 @@ body {
 }
 
 .liyuan-color__panel--face {
-  align-self: end;
+  align-self: start;
 }
 
 .liyuan-color__face {

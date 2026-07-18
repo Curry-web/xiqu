@@ -21,6 +21,20 @@ function mapOpening(opening) {
   }
 }
 
+function mapOperaOpening(opera, featured) {
+  const imagePath = opera.coverPath || opera.assets?.[0]?.imagePath || ''
+  return {
+    id: opera.id,
+    title: opera.title,
+    venue: opera.venue,
+    startTime: opera.startTime ? formatTime(opera.startTime) : '',
+    imagePath,
+    imageUrl: toPublicUrl(imagePath),
+    description: opera.summary,
+    featured,
+  }
+}
+
 function mapLiyuanMaterial(material) {
   return {
     id: material.id,
@@ -54,6 +68,28 @@ function pickDailyColor(colors) {
 
 export async function homeRoutes(app) {
   app.get('/home/today-openings', async () => {
+    const operaItems = await prisma.opera.findMany({
+      where: {
+        status: 'published',
+        isDailyCandidate: true,
+      },
+      include: {
+        assets: {
+          where: { imagePath: { not: null } },
+          orderBy: [{ assetType: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+          take: 1,
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+    })
+
+    if (operaItems.length) {
+      return {
+        items: pickDailyMaterials(operaItems, Math.min(2, operaItems.length), 'today-openings')
+          .map((opera, index) => mapOperaOpening(opera, index === 0)),
+      }
+    }
+
     const items = await prisma.$queryRaw`
       select
         id,

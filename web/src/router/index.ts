@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
 import OpeningDetailView from '../views/OpeningDetailView.vue'
+import OperaTextDetailView from '../views/OperaTextDetailView.vue'
 import OperaView from '../views/OperaView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import StageView from '../views/StageView.vue'
@@ -44,6 +45,15 @@ const router = createRouter({
       component: OpeningDetailView,
       meta: {
         title: '今日开场 - 戏曲',
+        showTabbar: false,
+      },
+    },
+    {
+      path: '/opening/:id/text/:sectionType',
+      name: 'opera-text-detail',
+      component: OperaTextDetailView,
+      meta: {
+        title: '戏文详情 - 戏曲',
         showTabbar: false,
       },
     },

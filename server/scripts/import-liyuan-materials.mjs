@@ -8,8 +8,24 @@ import xlsx from 'xlsx'
 
 const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = path.resolve(serverRoot, '..')
-const workbookPath = fs.readdirSync(repoRoot)
-  .find((name) => name.toLowerCase().endsWith('.xlsx') && !name.startsWith('~$'))
+const requiredSheetNames = ['图片资料-人物类', '图片资料-实体物品类']
+
+function findMaterialWorkbook() {
+  const candidates = fs.readdirSync(repoRoot)
+    .filter((name) => name.toLowerCase().endsWith('.xlsx') && !name.startsWith('~$'))
+    .map((name) => ({ name, path: path.join(repoRoot, name) }))
+    .sort((left, right) => fs.statSync(right.path).mtimeMs - fs.statSync(left.path).mtimeMs)
+
+  for (const candidate of candidates) {
+    const workbook = xlsx.readFile(candidate.path, { bookSheets: true })
+    if (requiredSheetNames.every((sheetName) => workbook.SheetNames.includes(sheetName))) {
+      return candidate.path
+    }
+  }
+  return ''
+}
+
+const workbookPath = findMaterialWorkbook()
 const projectFolder = fs.readdirSync(repoRoot, { withFileTypes: true })
   .find((entry) => entry.isDirectory() && entry.name.startsWith('2026'))?.name
 const photoFolder = projectFolder
@@ -29,6 +45,15 @@ const colorMap = new Map([
   ['\u767d', 'white'],
   ['\u9ec4', 'yellow'],
 ])
+
+function parseColors(value) {
+  return [...new Set(
+    String(value || '')
+      .split(/[\/\\|\u3001,\uff0c;\uff1b]+/)
+      .map((colorName) => colorName.trim())
+      .filter(Boolean),
+  )]
+}
 
 function findDirectory(root, predicate) {
   if (!fs.existsSync(root)) return ''
@@ -98,18 +123,19 @@ function rowValues(row) {
   }
 }
 
-function readRows(workbook, sheetIndex) {
-  const sheet = workbook.Sheets[workbook.SheetNames[sheetIndex]]
+function readRows(workbook, sheetName) {
+  const sheet = workbook.Sheets[sheetName]
+  if (!sheet) throw new Error(`Worksheet not found: ${sheetName}`)
   return xlsx.utils.sheet_to_json(sheet, { defval: '' }).map(rowValues)
 }
 
 function toMaterialRows(workbook) {
-  const peopleRows = readRows(workbook, 4)
+  const peopleRows = readRows(workbook, '图片资料-人物类')
     .filter((row) => row.fileName && row.colorName)
     .map((source) => ({ category: 'performer', source }))
 
-  const costumeRows = readRows(workbook, 5)
-    .filter((row) => row.fileName && row.colorName && row.secondaryCategory.includes('\u670d\u9970\u7c7b'))
+  const costumeRows = readRows(workbook, '图片资料-实体物品类')
+    .filter((row) => row.fileName && row.colorName && row.secondaryCategory === '\u670d\u9970\u7c7b')
     .map((source) => ({ category: 'costume', source }))
 
   return [...peopleRows, ...costumeRows]
@@ -132,7 +158,7 @@ async function main() {
   if (!workbookPath) throw new Error('No xlsx file found in repository root')
   if (!projectFolder || !photoFolder) throw new Error('Project photo folder not found')
 
-  const workbook = xlsx.readFile(path.join(repoRoot, workbookPath))
+  const workbook = xlsx.readFile(workbookPath)
   const sourceFiles = walkFiles(photoFolder)
   const fileIndex = buildFileIndex(sourceFiles)
   const rows = toMaterialRows(workbook)
@@ -144,8 +170,12 @@ async function main() {
 
   for (const row of rows) {
     const { source } = row
-    const colorCode = colorMap.get(source.colorName)
-    if (!colorCode) {
+    const colorNames = parseColors(source.colorName)
+    const colors = colorNames
+      .map((colorName) => ({ colorName, colorCode: colorMap.get(colorName) }))
+      .filter((color) => color.colorCode)
+
+    if (!colors.length) {
       missing.push({ fileName: source.fileName, reason: `unsupported color: ${source.colorName}` })
       continue
     }
@@ -156,21 +186,23 @@ async function main() {
       continue
     }
 
-    const imagePath = copyToPublic(sourceFile, { category: row.category, colorCode, source })
-    imported.push({
-      category: row.category,
-      colorName: source.colorName,
-      colorCode,
-      title: titleFromFileName(source.fileName),
-      imagePath,
-      sourceFileName: source.fileName,
-      sourceRelativePath: path.relative(photoFolder, sourceFile).split(path.sep).join('/'),
-      primaryCategory: source.primaryCategory,
-      secondaryCategory: source.secondaryCategory,
-      tertiaryCategory: source.tertiaryCategory,
-      weight: 1,
-      status: 'published',
-    })
+    for (const { colorName, colorCode } of colors) {
+      const imagePath = copyToPublic(sourceFile, { category: row.category, colorCode, source })
+      imported.push({
+        category: row.category,
+        colorName,
+        colorCode,
+        title: titleFromFileName(source.fileName),
+        imagePath,
+        sourceFileName: source.fileName,
+        sourceRelativePath: path.relative(photoFolder, sourceFile).split(path.sep).join('/'),
+        primaryCategory: source.primaryCategory,
+        secondaryCategory: source.secondaryCategory,
+        tertiaryCategory: source.tertiaryCategory,
+        weight: 1,
+        status: 'published',
+      })
+    }
   }
 
   const uniqueImported = [...new Map(imported.map((item) => [item.imagePath, item])).values()]

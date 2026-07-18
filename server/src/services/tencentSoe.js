@@ -176,6 +176,18 @@ function getResultPayload(payload) {
   return result
 }
 
+function normalizePercentScore(value) {
+  if (!Number.isFinite(value)) return 0
+  return Math.round(Math.max(0, Math.min(100, value)))
+}
+
+function normalizeRatioScore(value, fallback) {
+  if (!Number.isFinite(value)) return normalizePercentScore(fallback)
+  if (value < 0) return 0
+  if (value <= 1) return Math.round(value * 100)
+  return normalizePercentScore(value)
+}
+
 function parseTencentFinalResult(payload) {
   const result = getResultPayload(payload)
   const suggestedScore =
@@ -185,10 +197,10 @@ function parseTencentFinalResult(payload) {
   const pronCompletion = readNumber(result, ['PronCompletion', 'pron_completion', 'CompletionScore']) ?? suggestedScore
 
   return {
-    totalScore: Math.round(suggestedScore),
-    accuracyScore: Math.round(pronAccuracy),
-    fluencyScore: Math.round(pronFluency),
-    completionScore: Math.round(pronCompletion),
+    totalScore: normalizePercentScore(suggestedScore),
+    accuracyScore: normalizePercentScore(pronAccuracy),
+    fluencyScore: normalizeRatioScore(pronFluency, suggestedScore),
+    completionScore: normalizeRatioScore(pronCompletion, suggestedScore),
     raw: payload,
   }
 }

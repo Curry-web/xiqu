@@ -9,6 +9,8 @@ dist/
 **/dist/
 coverage/
 **/coverage/
+**/__pycache__/
+*.py[cod]
 .vite/
 **/.vite/
 *.tsbuildinfo
@@ -39,3 +41,15 @@ agent/.cache/
 # Server runtime uploads
 server/uploads/*
 !server/uploads/.gitkeep
+
+# Local Python scoring runtime logs
+scoring-service/logs/
+# large materials
+server/public/opera-materials/
+server/public/liyuan-materials/
+server/public/practice-samples/
+# large video materials
+2026大创项目（戏曲智能体）/
+*.mp4
+*.wav
+*.m4a

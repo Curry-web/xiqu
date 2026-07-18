@@ -8,6 +8,7 @@ import { prisma } from './db.js'
 import { authPlugin } from './plugins/auth.js'
 import { agentRoutes } from './routes/agent.js'
 import { authRoutes } from './routes/auth.js'
+import { favoriteRoutes } from './routes/favorites.js'
 import { homeRoutes } from './routes/home.js'
 import { operaRoutes } from './routes/operas.js'
 import { practiceRoutes } from './routes/practice.js'
@@ -56,6 +57,7 @@ await app.register(fastifyStatic, {
 await app.register(authPlugin)
 await app.register(agentRoutes, { prefix: '/api' })
 await app.register(authRoutes, { prefix: '/api' })
+await app.register(favoriteRoutes, { prefix: '/api' })
 await app.register(userRoutes, { prefix: '/api' })
 await app.register(homeRoutes, { prefix: '/api' })
 await app.register(operaRoutes, { prefix: '/api' })

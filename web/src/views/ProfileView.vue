@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { getFavorites, type OperaFavorite } from '../api/favorites'
+import { getPracticeRepertoire, type PracticeRepertoire } from '../api/practice'
+import homeHeroUrl from '../assets/images/home-hero.jpg'
 import profileAvatarUrl from '../assets/images/profile-avatar.png'
 import profileHeaderBgUrl from '../assets/images/profile-header-bg.png'
 import profileCheckinUrl from '../assets/images/profile-checkin.png'
@@ -9,17 +14,72 @@ const stats = [
   { value: '3', unit: '枚', label: '践迹佩' },
 ]
 
-const boxes = [
-  { title: '青衣入门', color: '#3f8b82' },
-  { title: '身段练习', color: '#dfc3bd' },
-  { title: '名段鉴赏', color: '#9c747b' },
-]
+const router = useRouter()
+const favorites = ref<OperaFavorite[]>([])
+const repertoire = ref<PracticeRepertoire[]>([])
+const favoritesLoading = ref(true)
+const favoritesError = ref('')
+const repertoireLoading = ref(true)
+const repertoireError = ref('')
 
-const favorites = [
-  { title: '梨园旧影', color: '#afc1bd' },
-  { title: '昆曲雅集', color: '#3f8b82' },
-  { title: '梅派唱腔', color: '#dfc3bd' },
-]
+async function loadFavorites() {
+  favoritesLoading.value = true
+  favoritesError.value = ''
+  try {
+    favorites.value = await getFavorites()
+  } catch (error) {
+    favoritesError.value = error instanceof Error ? error.message : '收藏暂时无法加载'
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+async function loadRepertoire() {
+  repertoireLoading.value = true
+  repertoireError.value = ''
+  try {
+    repertoire.value = await getPracticeRepertoire()
+  } catch (error) {
+    repertoireError.value = error instanceof Error ? error.message : '练功记录暂时无法加载'
+  } finally {
+    repertoireLoading.value = false
+  }
+}
+
+function openFavorite(item: OperaFavorite) {
+  if (item.sectionType === 'chant') {
+    router.push({
+      name: 'opening-detail',
+      params: { id: item.operaId },
+      query: item.assetId ? { asset: String(item.assetId) } : {},
+      hash: '#detail-video-section',
+    })
+    return
+  }
+
+  router.push({
+    name: 'opera-text-detail',
+    params: { id: item.operaId, sectionType: item.sectionType },
+  })
+}
+
+function openRepertoire(item: PracticeRepertoire) {
+  if (item.operaId) {
+    router.push({ name: 'opening-detail', params: { id: item.operaId } })
+    return
+  }
+  router.push({ name: 'ticket', query: item.referenceId ? { referenceId: item.referenceId } : {} })
+}
+
+function handleFavoriteImageError(event: Event) {
+  const image = event.currentTarget
+  if (image instanceof HTMLImageElement && image.src !== homeHeroUrl) image.src = homeHeroUrl
+}
+
+onMounted(() => {
+  loadFavorites()
+  loadRepertoire()
+})
 </script>
 
 <template>
@@ -50,10 +110,17 @@ const favorites = [
     <section class="profile-content">
       <div class="profile-section">
         <h2>我的戏箱</h2>
-        <div class="profile-grid" aria-label="我的戏箱">
-          <article v-for="item in boxes" :key="item.title" class="profile-tile" :style="{ '--tile-color': item.color }">
-            <span>{{ item.title }}</span>
-          </article>
+        <p v-if="repertoireLoading" class="profile-favorites-status">正在整理练过的戏...</p>
+        <p v-else-if="repertoireError" class="profile-favorites-status">{{ repertoireError }}</p>
+        <p v-else-if="repertoire.length === 0" class="profile-favorites-status">完成一次唱戏评分后，剧目会收进戏箱</p>
+        <div v-else class="profile-grid" aria-label="我的戏箱">
+          <button v-for="item in repertoire" :key="item.id" class="profile-tile profile-repertoire" type="button" @click="openRepertoire(item)">
+            <img :src="item.coverUrl || homeHeroUrl" :alt="item.title" @error="handleFavoriteImageError" />
+            <span class="profile-repertoire__caption">
+              <strong>{{ item.title }}</strong>
+              <small>练习 {{ item.practiceCount }} 次 · 最高 {{ item.bestScore }} 分</small>
+            </span>
+          </button>
         </div>
       </div>
 
@@ -61,10 +128,14 @@ const favorites = [
 
       <div class="profile-section">
         <h2>我的收藏</h2>
-        <div class="profile-grid" aria-label="我的收藏">
-          <article v-for="item in favorites" :key="item.title" class="profile-tile" :style="{ '--tile-color': item.color }">
+        <p v-if="favoritesLoading" class="profile-favorites-status">正在整理收藏...</p>
+        <p v-else-if="favoritesError" class="profile-favorites-status">{{ favoritesError }}</p>
+        <p v-else-if="favorites.length === 0" class="profile-favorites-status">还没有收藏内容</p>
+        <div v-else class="profile-grid" aria-label="我的收藏">
+          <button v-for="item in favorites" :key="`${item.sectionType}-${item.id}`" class="profile-tile profile-favorite" type="button" @click="openFavorite(item)">
+            <img :src="item.coverUrl || homeHeroUrl" :alt="item.operaTitle" @error="handleFavoriteImageError" />
             <span>{{ item.title }}</span>
-          </article>
+          </button>
         </div>
       </div>
     </section>
@@ -245,6 +316,28 @@ const favorites = [
   overflow: hidden;
   background: var(--tile-color);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.profile-favorite { padding: 0; color: inherit; border: 0; font: inherit; cursor: pointer; }
+.profile-favorite img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-favorite span { opacity: 1; }
+
+.profile-repertoire { padding: 0; color: inherit; border: 0; background: #3f8b82; font: inherit; cursor: pointer; }
+.profile-repertoire img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-repertoire .profile-repertoire__caption { display: grid; gap: 0.1rem; padding: 0.62rem 0.32rem 0.5rem; opacity: 1; }
+.profile-repertoire__caption strong { overflow: hidden; font-size: 0.96rem; text-overflow: ellipsis; white-space: nowrap; }
+.profile-repertoire__caption small { overflow: hidden; font-size: 0.68rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+
+.profile-favorites-status {
+  min-height: 7rem;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: #2c817b;
+  border: 1px solid rgb(47 165 158 / 0.18);
+  background: rgb(255 255 255 / 0.3);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .profile-tile span {
